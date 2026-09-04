@@ -13,3 +13,5 @@ rating = 8.8 + 0.2;
 movieTitle = "Interstellar"; // should this be allowed?
 
 console.log(movieTitle, releaseYear, isWatched, rating);
+
+//hi lol
