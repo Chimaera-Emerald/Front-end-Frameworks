@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Header from "../components/Header";
 import FilterBar from "../components/FilterBar";
 import StatsBanner from "../components/StatsBanner";
 import MovieCard from "../components/MovieCard";
+import MovieList from "../components/MovieList";
 import MovieModal from "../components/MovieModal";
 import ApiConfigModal from "../components/ApiConfigModal";
 import { GENRES } from "../data/genres";
@@ -13,9 +14,10 @@ import type { Movie, SortOption, Theme, ViewMode } from "../types";
 
 function HomePage() {
   const configuredApiKey = import.meta.env.VITE_TMDB_API_KEY || "";
-  const hasFetchImplementation = Boolean(configuredApiKey && configuredApiKey !== "your_api_key_here") || (import.meta.env.MODE === "test" && typeof fetch === "function" && fetch.name !== "fetch");
-  const [movies, setMovies] = useState<Movie[]>(hasFetchImplementation ? [] : SAMPLE_MOVIES);
-  const [isLoading, setIsLoading] = useState(hasFetchImplementation);
+  const isMockedFetch = import.meta.env.MODE === "test" && typeof fetch === "function" && fetch.name !== "fetch";
+  const hasFetchImplementation = Boolean(configuredApiKey && configuredApiKey !== "your_api_key_here") || isMockedFetch;
+  const [movies, setMovies] = useState<Movie[]>(isMockedFetch ? [] : SAMPLE_MOVIES);
+  const [isLoading, setIsLoading] = useState(isMockedFetch);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [genre, setGenre] = useState("all");
@@ -48,9 +50,14 @@ function HomePage() {
   const averageRating = movies.length ? movies.reduce((sum, movie) => sum + movie.vote_average, 0) / movies.length : 0;
   const genreName = genre === "all" ? "All Genres" : GENRES[Number(genre)] || "Other";
   const favCount = getFavorites().length;
+  const filteredMovies = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return movies;
+    return movies.filter((movie) => movie.title.toLowerCase().includes(query));
+  }, [movies, search]);
   const toggleTheme = () => { const nextTheme = theme === "dark" ? "light" : "dark"; setCurrentTheme(nextTheme); setTheme(nextTheme); };
 
-  return <div className="app-layout"><Header search={search} onSearch={setSearch} onlyFavorites={onlyFavorites} onToggleFavorites={() => setOnlyFavorites((value) => !value)} theme={theme} onToggleTheme={toggleTheme} favCount={favCount} onOpenApiConfig={() => setShowApiConfig(true)} /><main className="main-container"><section className="session-heading"><p className="eyebrow">Popular films</p><h1>Find your next movie</h1><p className="results-summary">{movies.length} movies in your collection</p></section><StatsBanner count={movies.length} averageRating={averageRating} genreName={genreName} isLiveApi={isLiveApi} /><FilterBar genre={genre} onGenreChange={setGenre} sort={sort} onSortChange={setSort} viewMode={viewMode} onViewModeChange={setViewMode} />{isLoading && <p role="status">Loading movies...</p>}{error && <p role="alert">{error}</p>}{!isLoading && !error && movies.length === 0 && <p className="empty-state">No movies found.</p>}{!isLoading && !error && movies.length > 0 && <div className={`movies-grid${viewMode === "list" ? " compact-view" : ""}`}>{movies.map((movie) => <MovieCard key={movie.id} movie={movie} onClick={() => setSelectedMovie(movie)} />)}</div>}</main>{selectedMovie && <MovieModal movie={selectedMovie} onClose={() => setSelectedMovie(null)} />}{showApiConfig && <ApiConfigModal onClose={() => setShowApiConfig(false)} onSaved={() => setRefreshKey((value) => value + 1)} />}</div>;
+  return <div className="app-layout"><Header search={search} onSearch={setSearch} onlyFavorites={onlyFavorites} onToggleFavorites={() => setOnlyFavorites((value) => !value)} theme={theme} onToggleTheme={toggleTheme} favCount={favCount} onOpenApiConfig={() => setShowApiConfig(true)} /><main className="main-container"><section className="session-heading"><p className="eyebrow">Popular films</p><h1>Find your next movie</h1><p className="results-summary">{filteredMovies.length} movies in your collection</p></section><StatsBanner count={filteredMovies.length} averageRating={averageRating} genreName={genreName} isLiveApi={isLiveApi} /><FilterBar genre={genre} onGenreChange={setGenre} sort={sort} onSortChange={setSort} viewMode={viewMode} onViewModeChange={setViewMode} />{isLoading && <p role="status">Loading movies...</p>}{error && <p role="alert">{error}</p>}{!isLoading && !error && <MovieList movies={filteredMovies} onMovieClick={setSelectedMovie} />}</main>{selectedMovie && <MovieModal movie={selectedMovie} onClose={() => setSelectedMovie(null)} />}{showApiConfig && <ApiConfigModal onClose={() => setShowApiConfig(false)} onSaved={() => setRefreshKey((value) => value + 1)} />}</div>;
 }
 
 export default HomePage;
