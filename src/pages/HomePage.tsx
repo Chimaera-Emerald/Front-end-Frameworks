@@ -12,7 +12,8 @@ import { getFavorites, getTheme, setTheme } from "../utils/storage";
 import type { Movie, SortOption, Theme, ViewMode } from "../types";
 
 function HomePage() {
-  const hasFetchImplementation = Boolean(import.meta.env.VITE_TMDB_API_KEY) || (import.meta.env.MODE === "test" && typeof fetch === "function" && fetch.name !== "fetch");
+  const configuredApiKey = import.meta.env.VITE_TMDB_API_KEY || "";
+  const hasFetchImplementation = Boolean(configuredApiKey && configuredApiKey !== "your_api_key_here") || (import.meta.env.MODE === "test" && typeof fetch === "function" && fetch.name !== "fetch");
   const [movies, setMovies] = useState<Movie[]>(hasFetchImplementation ? [] : SAMPLE_MOVIES);
   const [isLoading, setIsLoading] = useState(hasFetchImplementation);
   const [error, setError] = useState("");
