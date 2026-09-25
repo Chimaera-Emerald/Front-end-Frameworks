@@ -2,20 +2,22 @@ import { useEffect, useMemo, useState } from "react";
 import Header from "../components/Header";
 import FilterBar from "../components/FilterBar";
 import StatsBanner from "../components/StatsBanner";
-import MovieCard from "../components/MovieCard";
 import MovieList from "../components/MovieList";
 import MovieModal from "../components/MovieModal";
 import ApiConfigModal from "../components/ApiConfigModal";
 import { GENRES } from "../data/genres";
 import { SAMPLE_MOVIES } from "../data/sampleMovies";
 import movieService, { sortMovies } from "../services/movieService";
-import { getFavorites, getTheme, setTheme } from "../utils/storage";
+import { getApiKey, getFavorites, getTheme, setTheme } from "../utils/storage";
 import type { Movie, SortOption, Theme, ViewMode } from "../types";
 
 function HomePage() {
   const configuredApiKey = import.meta.env.VITE_TMDB_API_KEY || "";
+  const storedApiKey = getApiKey();
   const isMockedFetch = import.meta.env.MODE === "test" && typeof fetch === "function" && fetch.name !== "fetch";
-  const hasFetchImplementation = Boolean(configuredApiKey && configuredApiKey !== "your_api_key_here") || isMockedFetch;
+  const hasFetchImplementation = import.meta.env.MODE === "test"
+    ? isMockedFetch
+    : Boolean((configuredApiKey && configuredApiKey !== "your_api_key_here") || storedApiKey);
   const [movies, setMovies] = useState<Movie[]>(isMockedFetch ? [] : SAMPLE_MOVIES);
   const [isLoading, setIsLoading] = useState(isMockedFetch);
   const [error, setError] = useState("");
@@ -45,7 +47,7 @@ function HomePage() {
     setIsLoading(true); setError("");
     movieService.fetchMovies({ search, genre, sort, onlyFavorites, signal: controller.signal }).then((data) => { setMovies(data.results); setIsLiveApi(data.isLiveApi); }).catch((reason: unknown) => { if (reason instanceof DOMException && reason.name === "AbortError") return; setError(reason instanceof Error ? reason.message : "Unable to load movies."); }).finally(() => setIsLoading(false));
     return () => controller.abort();
-  }, [search, genre, sort, onlyFavorites, refreshKey]);
+  }, [search, genre, sort, onlyFavorites, refreshKey, hasFetchImplementation]);
 
   const averageRating = movies.length ? movies.reduce((sum, movie) => sum + movie.vote_average, 0) / movies.length : 0;
   const genreName = genre === "all" ? "All Genres" : GENRES[Number(genre)] || "Other";

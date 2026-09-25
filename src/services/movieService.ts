@@ -42,7 +42,10 @@ async function fetchFromApi(options: FetchMoviesOptions, apiKey: string): Promis
 export const movieService = {
   fetchMovies(options: FetchMoviesOptions = {}): Promise<MovieResults> {
     const apiKey = getApiKey() || import.meta.env.VITE_TMDB_API_KEY || "";
-    const shouldFetch = Boolean(apiKey && apiKey !== "your_api_key_here") || (import.meta.env.MODE === "test" && typeof fetch === "function" && fetch.name !== "fetch");
+    const isMockedFetch = import.meta.env.MODE === "test" && typeof fetch === "function" && fetch.name !== "fetch";
+    const shouldFetch = import.meta.env.MODE === "test"
+      ? isMockedFetch
+      : Boolean(apiKey && apiKey !== "your_api_key_here");
     if (options.onlyFavorites) return Promise.resolve(filterLocally(options));
     return shouldFetch ? fetchFromApi(options, apiKey) : Promise.resolve(filterLocally(options));
   },
