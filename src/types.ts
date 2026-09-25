@@ -12,6 +12,8 @@ export interface Movie {
   vote_count: number;
   popularity: number;
   adult: boolean;
+  softcore?: boolean;
+  video?: boolean;
 }
 
 export type SortOption = "popularity" | "rating" | "release_date" | "title";
